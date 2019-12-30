@@ -1,0 +1,12 @@
+*~
+*.ts
+!*.d.ts
+test/
+node_modules/
+.gitignore
+.npmignore
+yarn.lock
+*.tgz
+.travis.yml
+.prettierrc.json
+tsconfig.json
