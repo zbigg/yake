@@ -10,15 +10,16 @@
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/zbigg/treesync.git"
+        "url": "https://github.com/zbigg/yake.git"
     },
     "main": "yake.js",
     "bin": "yake.js",
     "scripts": {
         "prepare": "tsc",
+        "tsc": "tsc",
         "prettier": "prettier -l *.ts *.json",
         "tslint": "tslint *.ts",
-        "test": "mocha -r ts-node/register test/**/*.spec.ts",
+        "test": "true mocha -r ts-node/register test/**/*.spec.ts",
         "clean": "rm -f lib/yake.{js,d.ts}"
     },
     "author": "Zbigniew Zagórski <z.zagorski@gmail.com>",

@@ -56,8 +56,12 @@ export interface ShellTask extends BaseTask {
     recipe: string | string[];
 }
 
+export interface PluginTask extends BaseTask {
+    type: string;
+}
+
 export type Task = (NpmTask | ShellTask | CompoundTask) & { name: string };
-export type BaseTaskParams = NpmTask | ShellTask | CompoundTask;
+export type BaseTaskParams = NpmTask | ShellTask | CompoundTask | PluginTask;
 
 export type NamedTaskList = Task[];
 export interface TaskDict {
@@ -135,6 +139,22 @@ export function promisedShell(
         shell: true,
         env: process.env,
         stdio: ["inherit", "pipe", "pipe"],
+        // TODO:
+        //   Decide how to handle CTRL+C and other interruptions
+        //   - 'robust cancel management'
+        //     We start all tasks in detached mode, so they get their own process group, so we
+        //     can kill/cancel (including any complicated process tree) them at will.
+        //     Pros: Can cancel particular tasks, Possibly correct CTRL+C management
+        //     Cons: Complicated, have to manage CTRL+C and propagate to all subprocess groups,
+        //        kill -9 on us doesn't leaves all tasks dangling
+        //        note sure about windows :/
+        //   If we want to be able to cancel tasks by ourselves, we need to create
+        //   - 'interrupt only by shell'
+        //     If we don't use detached, we actually can't reliably kill subtask's process tree
+        //     as we live in subprocess group created by shell, so, only shell can kill whole process
+        //     tree, including US :/
+        //     Good - portable, simple, robust handling of CTRL+C
+        //     Cons - we can't kill whole process trees of subtasks
         detached: true
     };
 
@@ -274,6 +294,19 @@ export async function runShellTask(
     return;
 }
 
+async function runPluginTask(task: PluginTask, cancellationToken: CancellationToken): Promise<void> {
+    if (task.type === 'typescript') {
+        const typescriptPlugin = require("./plugins/typescript");
+
+        // todo needed files
+        const compilationOptions = { listEmittedFiles: true };
+        await typescriptPlugin.compile(task.depends || [], compilationOptions, cancellationToken);
+    } else {
+        console.log("#runPluginTask: unknown plugin", task.type)
+    }
+}
+console.log("#6");
+
 interface ConcurrentRunContext {
     freeSlots: number;
     participants: Set<() => void>;
@@ -395,7 +428,11 @@ function concurrentRun<R>(context: ConcurrentRunContext, fun: () => R | Promise<
 */
 
 function isCompoundTask(task: any): task is CompoundTask {
-    return Array.isArray(task.depends) && task.depends.length > 0 && !isNpmTask(task) && !isShellTask(task);
+    return Array.isArray(task.depends) && task.depends.length > 0 && !isNpmTask(task) && !isShellTask(task) && !isPluginTask(task);
+}
+
+function isPluginTask(task: any): task is PluginTask {
+    return typeof task.type === 'string' && !isNpmTask(task) && !isShellTask(task);
 }
 
 namespace Task {
@@ -410,6 +447,10 @@ namespace Task {
             } else {
                 return runShellTask(task.recipe, task.name, cancellationToken);
             }
+        } else if (isPluginTask(task)) {
+            return runPluginTask(task, cancellationToken);
+        } else {
+            // ???
         }
     }
 
@@ -816,7 +857,7 @@ class LockManager {
     private locks: Set<string> = new Set();
     private lockedTasks: Set<RuntimeTask> = new Set();
 
-    constructor(readonly nextStepCallback: NextStepCallback) {}
+    constructor(readonly nextStepCallback: NextStepCallback) { }
 
     acquireLocks(rt: RuntimeTask): boolean {
         let lockNames = rt.task.locks;
@@ -1024,6 +1065,7 @@ async function runTasks(taskNames: string[], tasks: Tasks, params: YakeParams): 
             }
 
             if (isCompoundTask(rt.task)) {
+                debug("%s is compound and all deps are ok -> done", rt.task)
                 setTaskStatus(rt, "done");
             } else {
                 readyForExecution.push(rt);
@@ -1294,7 +1336,7 @@ export function yakeCli(tasks: Tasks, options?: YakeOptions) {
  */
 async function yakeCliAuto() {
     debug("#yakeCliAuto");
-    const candidates = ["./Yakefile", "./Yakefile.json"];
+    const candidates = ["./Yakefile.js", "./Yakefile.ts", "./Yakefile.json"];
     for (const name of candidates) {
         const fullPath = path.resolve(".", name);
         try {
@@ -1321,6 +1363,7 @@ async function yakeCliAuto() {
     console.warn("yake: no Yakefile(.js,.ts,.json) found, will use tasks from package.json");
     yakeCli({});
 }
+
 if (require.main === module) {
     yakeCliAuto();
 }

@@ -21,7 +21,8 @@ So, we track dependencies between tasks, we track files they generate and run fo
 if prerequisities are ready - also in watch mode.
 
 Never start 3 watchers in one folder (resource hog).
-Never scratch your head, if there are between conditions in 3 parallel, non-synchronized watchers.
+Never scratch your head over spurious build errors, if there are race conditions between 3 parallel,
+non-synchronized watchers.
 
 ## It's robust
 
