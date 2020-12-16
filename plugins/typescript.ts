@@ -1,5 +1,13 @@
 import * as ts from "typescript";
 
+//
+// Scraped from first example of
+//   https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API
+//
+// TODO, there is better, file & watch oriented version
+//  in `Incremental build support using the language services` chapter later in the doc
+//
+
 let oldProgram: any = undefined;
 export async function compile(fileNames: string[], options: ts.CompilerOptions): Promise<void> {
     const configFileName = ts.findConfigFile(
