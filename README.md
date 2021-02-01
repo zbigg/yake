@@ -8,6 +8,7 @@ Run `npm` tasks (or any other):
  * centralized *watch*, rerunning _only_ outdated tasks
  * keep your console clean (default no output for successfull tasks)
 
+
 TODO, rest of story inspired by https://mystor.github.io/git-revise.html
 
 ## Introducing `yake`!
@@ -21,6 +22,7 @@ So, we track dependencies between tasks, we track files they generate and run fo
 if prerequisities are ready - also in watch mode.
 
 Never start 3 watchers in one folder (resource hog).
+
 Never scratch your head over spurious build errors, if there are race conditions between 3 parallel,
 non-synchronized watchers.
 
@@ -31,4 +33,9 @@ Minimal setup doesn't require plugins and tinkering with arcane, APIs. It just r
 (we don't even mention about anticipated build-server architecture instead of plugins that to
  support almost native speed integration with `...ify`, `...pack`, `...lup`)
 
-##
+## Future - `gulp` revisited
+
+Due to inherent "feature" of NodeJS, running processes is very slow and so, most of `Node.Js` tools
+have "watch" mode, so they acts more like build servers.
+
+So, the idea is to create framweork for creating reusable, pluggable build servers.
