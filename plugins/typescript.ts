@@ -28,28 +28,38 @@ export async function compile(fileNames: string[], options: ts.CompilerOptions):
     compilerOptions.options.listEmittedFiles = true;
 
     let program = ts.createProgram(fileNames, compilerOptions.options, undefined, oldProgram);
+    oldProgram = undefined;
     let emitResult = program.emit();
 
-    console.log("#after #emit", emitResult.emittedFiles);
+    // console.log("#after #emit", emitResult.emittedFiles);
     let allDiagnostics = ts
         .getPreEmitDiagnostics(program)
         .concat(emitResult.diagnostics);
 
+    let failed = false;
     allDiagnostics.forEach(diagnostic => {
         if (diagnostic.file) {
             let { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
             let message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
-            console.log(`typescript: ${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`);
+            const c = ts.DiagnosticCategory[diagnostic.category];
+            if (diagnostic.category === ts.DiagnosticCategory.Error) {
+                failed = true;
+            }
+            console.log(`typescript: ${c} ${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`);
         } else {
             console.log("typescript: ", ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"));
         }
     });
 
     console.log("yake/typescript: Emitted files", emitResult.emittedFiles);
+    if (failed) {
+        throw new Error('compilation failed');
+    }
 
     //   let exitCode = emitResult.emitSkipped ? 1 : 0;
     //   console.log(`Process exiting with code '${exitCode}'.`);
     //   process.exit(exitCode);
     oldProgram = program;
+
     return;
 }
